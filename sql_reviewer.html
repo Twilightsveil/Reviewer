@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Command Reviewer</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --warn: #ff6b35;
+    --text: #c8d8e8;
+    --muted: #4a6080;
+    --correct: #00ff9d;
+    --wrong: #ff4455;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Rajdhani', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    background-image: 
+      radial-gradient(ellipse at 20% 0%, rgba(0,100,200,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(0,212,255,0.06) 0%, transparent 50%);
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+    animation: fadeDown 0.6s ease both;
+  }
+  .logo-line {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 4px;
+  }
+  .logo-line span { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 4px; text-transform: uppercase; }
+  h1 {
+    font-family: var(--sans);
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: #fff;
+  }
+  h1 em { font-style: normal; color: var(--accent); }
+  .subtitle { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 2px; margin-top: 8px; }
+
+  /* COMMAND CHIPS */
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    max-width: 700px; margin-bottom: 32px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .chip {
+    font-family: var(--mono); font-size: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--accent); padding: 5px 12px; border-radius: 4px;
+    letter-spacing: 1px; cursor: default;
+    transition: all 0.2s;
+  }
+  .chip.done { background: rgba(0,255,157,0.08); border-color: var(--accent2); color: var(--accent2); }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 680px;
+    width: 100%;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.5s 0.3s ease both;
+    box-shadow: 0 0 40px rgba(0,100,200,0.1);
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  /* PROGRESS */
+  .progress-bar-wrap {
+    background: var(--surface2); border-radius: 99px; height: 4px; margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px; transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+  .progress-label {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    text-align: right; margin-top: 4px;
+  }
+
+  /* QUESTION */
+  .q-meta {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .q-type-badge {
+    background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2);
+    color: var(--accent); padding: 2px 8px; border-radius: 3px; font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .question-text {
+    font-size: clamp(17px, 3vw, 21px); font-weight: 600;
+    line-height: 1.5; margin-bottom: 8px; color: #e8f0f8;
+  }
+  .question-scenario {
+    font-family: var(--mono); font-size: 12px; color: var(--accent2);
+    background: rgba(0,255,157,0.05); border-left: 3px solid var(--accent2);
+    padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 22px;
+  }
+  .question-scenario code { font-size: 13px; }
+
+  /* OPTIONS */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans); font-size: 15px; font-weight: 600;
+    padding: 14px 18px;
+    border-radius: 8px; text-align: left; cursor: pointer;
+    transition: all 0.18s;
+    display: flex; align-items: center; gap: 12px;
+    position: relative; overflow: hidden;
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent); color: #fff;
+    background: rgba(0,212,255,0.08);
+    transform: translateX(3px);
+  }
+  .option-btn .opt-key {
+    font-family: var(--mono); font-size: 12px;
+    min-width: 26px; height: 26px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--muted);
+    border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+  }
+  .option-btn.correct {
+    border-color: var(--correct); background: rgba(0,255,157,0.1); color: #fff;
+  }
+  .option-btn.correct .opt-key { background: var(--correct); color: #000; border-color: var(--correct); }
+  .option-btn.wrong {
+    border-color: var(--wrong); background: rgba(255,68,85,0.1); color: #fff;
+  }
+  .option-btn.wrong .opt-key { background: var(--wrong); color: #fff; border-color: var(--wrong); }
+  .option-btn:disabled { cursor: default; transform: none; }
+
+  /* FEEDBACK */
+  .feedback {
+    margin-top: 20px; padding: 14px 18px;
+    border-radius: 8px; font-size: 14px; line-height: 1.6;
+    display: none;
+  }
+  .feedback.show { display: block; animation: fadeUp 0.3s ease; }
+  .feedback.correct-fb { background: rgba(0,255,157,0.08); border: 1px solid rgba(0,255,157,0.2); color: var(--accent2); }
+  .feedback.wrong-fb { background: rgba(255,68,85,0.08); border: 1px solid rgba(255,68,85,0.2); color: #ff8899; }
+  .feedback strong { display: block; font-size: 13px; font-family: var(--mono); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* NEXT BTN */
+  .next-btn {
+    margin-top: 22px; width: 100%;
+    background: linear-gradient(135deg, var(--accent), #007aab);
+    border: none; color: #000; font-family: var(--sans); font-size: 15px; font-weight: 700;
+    padding: 14px; border-radius: 8px; cursor: pointer; display: none;
+    letter-spacing: 1px; text-transform: uppercase;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .next-btn:hover { opacity: 0.9; transform: scale(1.01); }
+  .next-btn.show { display: block; animation: fadeUp 0.3s ease; }
+
+  /* SCORE SCREEN */
+  .score-screen {
+    text-align: center; display: none;
+    animation: fadeUp 0.5s ease both;
+  }
+  .score-screen.show { display: block; }
+  .score-circle {
+    width: 130px; height: 130px; border-radius: 50%;
+    border: 3px solid var(--accent);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    background: radial-gradient(circle, rgba(0,212,255,0.1), transparent);
+    box-shadow: 0 0 40px rgba(0,212,255,0.2);
+  }
+  .score-num { font-family: var(--mono); font-size: 40px; color: #fff; line-height: 1; }
+  .score-denom { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .score-label { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+  .score-msg { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 28px; }
+  .restart-btn {
+    background: transparent; border: 1px solid var(--accent);
+    color: var(--accent); font-family: var(--sans); font-size: 14px; font-weight: 700;
+    padding: 12px 32px; border-radius: 8px; cursor: pointer; letter-spacing: 2px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .restart-btn:hover { background: rgba(0,212,255,0.1); }
+
+  /* CHEATSHEET TOGGLE */
+  .cheat-toggle {
+    margin-top: 24px; text-align: center;
+  }
+  .cheat-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); font-family: var(--mono); font-size: 11px;
+    padding: 6px 16px; border-radius: 4px; cursor: pointer; letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .cheat-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .cheatsheet {
+    max-width: 680px; width: 100%;
+    display: none; margin-top: 16px;
+    animation: fadeUp 0.3s ease;
+  }
+  .cheatsheet.show { display: block; }
+  .cheat-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+  }
+  .cheat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .cheat-card h3 { font-family: var(--mono); color: var(--accent); font-size: 14px; margin-bottom: 6px; }
+  .cheat-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .cheat-card code { font-family: var(--mono); color: var(--accent2); font-size: 12px; }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:none; } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-line">
+    <span>// SQL REVIEWER //</span>
+  </div>
+  <h1>SQL <em>Commands</em></h1>
+  <p class="subtitle">SELECT · WHERE · GROUP BY · HAVING · ORDER BY · DISTINCT · SUM · MAX · MIN · AVG · COUNT</p>
+</header>
+
+<div class="chips" id="chips"></div>
+
+<div class="card" id="quizCard">
+  <div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-label" id="progressLabel"></div>
+  </div>
+  <div id="questionArea"></div>
+  <div id="scoreArea" class="score-screen"></div>
+</div>
+
+<div class="cheat-toggle">
+  <button class="cheat-btn" onclick="toggleCheat()">📋 QUICK REFERENCE</button>
+</div>
+<div class="cheatsheet" id="cheatsheet">
+  <div class="cheat-grid" id="cheatGrid"></div>
+</div>
+
+<script>
+const commands = [
+  { kw: "SELECT", def: "Retrieves/displays columns or data from a table.", eg: "SELECT name FROM students;" },
+  { kw: "WHERE", def: "Filters rows based on a condition.", eg: "WHERE grade > 90" },
+  { kw: "GROUP BY", def: "Groups rows that share the same value in a column.", eg: "GROUP BY section" },
+  { kw: "HAVING", def: "Filters groups after GROUP BY (like WHERE for groups).", eg: "HAVING AVG(grade) > 85" },
+  { kw: "ORDER BY", def: "Sorts the result set in ascending or descending order.", eg: "ORDER BY score DESC" },
+  { kw: "DISTINCT", def: "Returns only unique/different values, no duplicates.", eg: "SELECT DISTINCT section FROM students;" },
+  { kw: "SUM", def: "Returns the total sum of a numeric column.", eg: "SELECT SUM(score) FROM class;" },
+  { kw: "MAX", def: "Returns the highest value in a column.", eg: "SELECT MAX(grade) FROM students;" },
+  { kw: "MIN", def: "Returns the lowest value in a column.", eg: "SELECT MIN(grade) FROM students;" },
+  { kw: "AVG", def: "Returns the average (mean) value of a numeric column.", eg: "SELECT AVG(score) FROM class;" },
+  { kw: "COUNT", def: "Counts the number of rows that match a condition.", eg: "SELECT COUNT(*) FROM students WHERE passed = 1;" }
+];
+
+const questions = [
+  { type:"Definition", q:"Which command is used to RETRIEVE or DISPLAY data from a table?", a:"SELECT", choices:["WHERE","SELECT","FROM","GROUP BY"] },
+  { type:"Scenario", q:"The teacher wants to show only students who scored above 85.", scenario:"SELECT * FROM class ___ score > 85;", a:"WHERE", choices:["HAVING","ORDER BY","WHERE","DISTINCT"] },
+  { type:"Definition", q:"Which command SORTS query results from highest to lowest (or lowest to highest)?", a:"ORDER BY", choices:["GROUP BY","HAVING","ORDER BY","DISTINCT"] },
+  { type:"Scenario", q:"The adviser wants to calculate the total points of all students.", scenario:"SELECT ___(points) FROM students;", a:"SUM", choices:["AVG","COUNT","MAX","SUM"] },
+  { type:"Definition", q:"Which command removes duplicate values from results?", a:"DISTINCT", choices:["WHERE","DISTINCT","HAVING","GROUP BY"] },
+  { type:"Scenario", q:"The principal wants to see the HIGHEST grade in the class.", scenario:"SELECT ___(grade) FROM students;", a:"MAX", choices:["SUM","MIN","MAX","AVG"] },
+  { type:"Scenario", q:"The teacher wants to group students by their section.", scenario:"SELECT section, COUNT(*) FROM students ___ section;", a:"GROUP BY", choices:["ORDER BY","WHERE","HAVING","GROUP BY"] },
+  { type:"Scenario", q:"The admin wants to display only sections where the average grade is above 88.", scenario:"SELECT section FROM students GROUP BY section ___ AVG(grade) > 88;", a:"HAVING", choices:["WHERE","GROUP BY","HAVING","ORDER BY"] },
+  { type:"Definition", q:"Which command counts the number of rows or records?", a:"COUNT", choices:["SUM","AVG","COUNT","MIN"] },
+  { type:"Scenario", q:"The teacher wants to find the LOWEST score in the exam.", scenario:"SELECT ___(score) FROM exam_results;", a:"MIN", choices:["MAX","AVG","MIN","COUNT"] },
+  { type:"Scenario", q:"The adviser wants to compute the class average grade.", scenario:"SELECT ___(grade) FROM class;", a:"AVG", choices:["SUM","COUNT","MIN","AVG"] },
+  { type:"Definition", q:"Which command is used to FILTER rows — but only applies AFTER aggregation with GROUP BY?", a:"HAVING", choices:["WHERE","HAVING","DISTINCT","ORDER BY"] },
+  { type:"Definition", q:"Which command is used to FILTER individual rows BEFORE grouping?", a:"WHERE", choices:["HAVING","GROUP BY","WHERE","ORDER BY"] },
+  { type:"Scenario", q:"The registrar wants to list all unique courses offered.", scenario:"SELECT ___ course FROM enrollments;", a:"DISTINCT", choices:["WHERE","GROUP BY","DISTINCT","COUNT"] },
+  { type:"Scenario", q:"The teacher wants to rank students by grade from highest to lowest.", scenario:"SELECT name, grade FROM students ___ grade DESC;", a:"ORDER BY", choices:["WHERE","HAVING","GROUP BY","ORDER BY"] },
+];
+
+let shuffled = [], current = 0, score = 0, answered = 0;
+const doneSet = new Set();
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+function init() {
+  shuffled = shuffle(questions);
+  current = 0; score = 0; answered = 0;
+  doneSet.clear();
+  renderChips();
+  renderQuestion();
+  document.getElementById('scoreArea').classList.remove('show');
+  document.getElementById('questionArea').style.display = '';
+}
+
+function renderChips() {
+  const c = document.getElementById('chips');
+  c.innerHTML = commands.map(cmd =>
+    `<div class="chip ${doneSet.has(cmd.kw)?'done':''}" id="chip-${cmd.kw}">${cmd.kw}</div>`
+  ).join('');
+}
+
+function renderQuestion() {
+  const q = shuffled[current];
+  const total = shuffled.length;
+  const pct = (current / total) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `Question ${current + 1} of ${total}`;
+
+  const opts = shuffle(q.choices);
+  const keys = ['A','B','C','D'];
+
+  let html = `
+    <div class="q-meta">
+      <span class="q-type-badge">${q.type}</span>
+      <span>Question ${current+1}</span>
+    </div>
+    <div class="question-text">${q.q}</div>
+    ${q.scenario ? `<div class="question-scenario"><code>${q.scenario}</code></div>` : ''}
+    <div class="options">
+      ${opts.map((opt,i) => `
+        <button class="option-btn" onclick="answer(this,'${opt}','${q.a}')">
+          <span class="opt-key">${keys[i]}</span> ${opt}
+        </button>
+      `).join('')}
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="nextBtn" onclick="next()">
+      ${current + 1 < total ? 'Next Question →' : 'See Results'}
+    </button>
+  `;
+  document.getElementById('questionArea').innerHTML = html;
+}
+
+function answer(btn, chosen, correct) {
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => { b.disabled = true; });
+  const fb = document.getElementById('feedback');
+  const cmd = commands.find(c => c.kw === correct);
+
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    score++;
+    fb.className = 'feedback show correct-fb';
+    fb.innerHTML = `<strong>✓ Correct!</strong>${cmd ? cmd.def + '<br><code>' + cmd.eg + '</code>' : ''}`;
+    doneSet.add(correct);
+  } else {
+    btn.classList.add('wrong');
+    allBtns.forEach(b => { if(b.textContent.trim().slice(1).trim() === correct) b.classList.add('correct'); });
+    fb.className = 'feedback show wrong-fb';
+    fb.innerHTML = `<strong>✗ Incorrect — The answer is ${correct}</strong>${cmd ? cmd.def + '<br><code>' + cmd.eg + '</code>' : ''}`;
+  }
+  answered++;
+  renderChips();
+  document.getElementById('nextBtn').classList.add('show');
+}
+
+function next() {
+  current++;
+  if (current >= shuffled.length) {
+    showScore();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showScore() {
+  document.getElementById('questionArea').innerHTML = '';
+  document.getElementById('progressBar').style.width = '100%';
+  document.getElementById('progressLabel').textContent = 'Complete!';
+  const pct = Math.round((score / shuffled.length) * 100);
+  let msg, label;
+  if (pct >= 90) { label = '🏆 Excellent!'; msg = 'You mastered SQL commands!'; }
+  else if (pct >= 70) { label = '👍 Good Job!'; msg = 'Review the ones you missed.'; }
+  else if (pct >= 50) { label = '📚 Keep Studying'; msg = 'Practice more with the quick reference.'; }
+  else { label = '💡 Try Again'; msg = 'Review the cheat sheet below and retry!'; }
+
+  const sa = document.getElementById('scoreArea');
+  sa.innerHTML = `
+    <div class="score-circle">
+      <div class="score-num">${score}</div>
+      <div class="score-denom">/ ${shuffled.length}</div>
+    </div>
+    <div class="score-label">${label}</div>
+    <div class="score-msg">${pct}% correct — ${msg}</div>
+    <button class="restart-btn" onclick="init()">↺ Restart Quiz</button>
+  `;
+  sa.classList.add('show');
+}
+
+function toggleCheat() {
+  const cs = document.getElementById('cheatsheet');
+  cs.classList.toggle('show');
+  if (cs.classList.contains('show') && !document.getElementById('cheatGrid').innerHTML) {
+    document.getElementById('cheatGrid').innerHTML = commands.map(c =>
+      `<div class="cheat-card"><h3>${c.kw}</h3><p>${c.def}<br><code>${c.eg}</code></p></div>`
+    ).join('');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
